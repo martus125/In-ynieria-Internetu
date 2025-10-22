@@ -17,8 +17,8 @@ html, body {
   margin: 0;
   font-family: system-ui, -apple-system, Segoe UI, Roboto, "Inter", Arial, sans-serif;
   color: var(--text);
-  background: radial-gradient(1200px 800px at 10% -10%, #2ebe26 0%, transparent 60%),
-              radial-gradient(1000px 700px at 110% 10%, #0b1220 0%, transparent 55%),
+  background: radial-gradient(1200px 800px at 10% -10%, #c3d8c2 0%, transparent 60%),
+              radial-gradient(1000px 700px at 110% 10%, #274e9c 0%, transparent 55%),
               var(--bg);
   scroll-behavior: smooth;
 }
