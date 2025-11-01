@@ -4,19 +4,14 @@
 *::after { box-sizing: border-box; }
 
 :root{
-  /* Podmień na swoje zdjęcie tła */
   --hero-img: url("../images/beach.jpg");
-
-  --nav-bg: rgba(255,255,255,.92);
-  --nav-text: #2b2f31;
-  --nav-muted: #6b7278;
-  --link-hover: #0ea5e9;
-
-  --shadow: 0 10px 30px rgba(0,0,0,.15);
-  --radius: 16px;
+  --nav-bg: rgba(255,255,255,.88);
+  --nav-text: #0b1220;
+  --nav-muted: #6b7280;
+  --shadow: 0 8px 24px rgba(2,6,23,.08);
 }
 
-html, body {
+html, body{
   padding: 0;
   margin: 0;
   height: 100%;
@@ -24,26 +19,27 @@ html, body {
   color: #fff;
 }
 
-/* ====== HERO TŁO (pierwszy ekran jak na zrzucie) ====== */
+/* ====== TŁO HERO ====== */
 body{
   min-height: 100dvh;
   background:
     linear-gradient(0deg, rgba(0,0,0,.45), rgba(0,0,0,.45)),
     var(--hero-img) center/cover no-repeat fixed;
+  background-color:#0b1220;
 }
 
-/* margin top, aby hero nie chował się pod nav */
+/* odstęp pod nav */
 body::before{
   content:"";
   display:block;
-  height:90px; /* wysokość nawigacji z marginesami */
+  height:90px;
 }
 
-/* ====== NAWIGACJA – biała, zaokrąglona “pigułka” ====== */
+/* ====== NAWIGACJA ====== */
 nav{
   position: fixed;
   top: 18px; left: 0; right: 0;
-  z-index: 50;
+  z-index: 1000;
   display: grid;
   place-items: center;
   padding: 0 16px;
@@ -53,6 +49,7 @@ nav{
   width: min(1180px, 94vw);
   background: var(--nav-bg);
   backdrop-filter: saturate(130%) blur(6px);
+  -webkit-backdrop-filter: saturate(130%) blur(6px);
   box-shadow: var(--shadow);
   border-radius: 18px;
   border: 1px solid rgba(0,0,0,.06);
@@ -63,14 +60,12 @@ nav{
   padding: 14px 18px;
 }
 
-/* header (logo + hamburger) */
 .nav__header{
   display: flex;
   align-items: center;
   gap: 14px;
 }
 
-/* ====== LOGO jak w screene: kwadrat z literą + tekst ====== */
 .logo{
   display: flex;
   align-items: center;
@@ -98,7 +93,7 @@ nav{
   color: var(--nav-muted);
 }
 
-/* ====== LINKI ====== */
+/* LINKI */
 .nav__links{
   display: flex;
   align-items: center;
@@ -125,19 +120,23 @@ nav{
   transform: translateY(-1px);
 }
 
-/* ====== HAMBURGER (tylko styl, bez JS) ====== */
+.nav__links a.active{
+  background: rgba(14,165,233,.22);
+}
+
+/* HAMBURGER */
 .nav__menu__btn{
   display: none;
   width: 42px; height: 42px;
   border-radius: 12px;
   border: 1px solid rgba(0,0,0,.08);
-  background: rgba(255,255,255,.8);
+  background: rgba(255,255,255,.9);
   color: var(--nav-text);
   place-items: center;
   cursor: pointer;
 }
 
-/* ====== PROSTE HERO TYPO (gdy dodasz sekcję <section class="hero">) ====== */
+/* HERO TYPO */
 .hero{
   max-width: 1180px;
   margin: 0 auto;
@@ -164,7 +163,6 @@ nav{
   margin: 0 0 26px;
 }
 
-/* żółty przycisk “Take a tour” */
 .btn{
   display:inline-block;
   padding: 12px 18px;
@@ -179,18 +177,30 @@ nav{
 }
 .btn:hover{ transform: translateY(-1px); filter: brightness(1.02); }
 
-/* ====== RESPONSYWNOŚĆ ====== */
+/* RESPONSYWNOŚĆ */
 @media (max-width: 980px){
   .nav__links{ gap: 12px; }
 }
 
 @media (max-width: 760px){
   .nav__menu__btn{ display: grid; }
-  .nav__links{ display: none; } /* na razie chowamy menu mobilne */
+  .nav__links{ display: none; }
+  .nav__links.open{
+    display: flex;
+    position: absolute;
+    top: 60px; right: 12px; left: 12px;
+    padding: 10px;
+    gap: 8px;
+    flex-wrap: wrap;
+    background: var(--nav-bg);
+    border: 1px solid rgba(0,0,0,.08);
+    border-radius: 14px;
+    box-shadow: var(--shadow);
+  }
   .nav__bar{ padding: 12px 14px; }
 }
 
 @media (max-width: 560px){
   .logo > div{ width: 36px; height: 36px; }
-  .logo span{ display:none; } /* uproszczenie jak na wielu makietach */
+  .logo span{ display:none; }
 }
