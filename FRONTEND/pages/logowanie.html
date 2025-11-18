@@ -64,52 +64,62 @@
   </section>
 
   <script>
-    const API = 'http://localhost:3000';
+  const API = 'http://localhost:3000';
 
-    function toJSON(r){ return r.json().catch(()=>({})).then(body => ({ ok:r.ok, status:r.status, body })); }
+  async function request(url, opts){
+    try{
+      const r = await fetch(url, opts);
+      let body = {};
+      try { body = await r.json(); } catch(e){}
+      return { ok: r.ok, status: r.status, body };
+    }catch(err){
+      return { ok: false, status: 0, body: { error: "Brak połączenia z backendem" } };
+    }
+  }
 
-    document.getElementById('regForm').addEventListener('submit', async (e)=>{
-      e.preventDefault();
-      const body = Object.fromEntries(new FormData(e.currentTarget).entries());
-      const res  = await fetch(API + '/api/auth/register',{
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        credentials:'include',
-        body: JSON.stringify(body)
-      }).then(toJSON);
-      document.getElementById('regMsg').textContent = res.ok ? 'Konto utworzone!' : (res.body.error || 'Błąd rejestracji');
+  document.getElementById('regForm').addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const body = Object.fromEntries(new FormData(e.currentTarget).entries());
+    const res  = await request(API + '/api/auth/register', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      credentials:'include',
+      body: JSON.stringify(body)
     });
+    document.getElementById('regMsg').textContent = res.ok ? 'Konto utworzone!' : (res.body.error || 'Błąd rejestracji');
+  });
 
-    document.getElementById('loginForm').addEventListener('submit', async (e)=>{
-      e.preventDefault();
-      const body = Object.fromEntries(new FormData(e.currentTarget).entries());
-      const res  = await fetch(API + '/api/auth/login',{
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        credentials:'include',
-        body: JSON.stringify(body)
-      }).then(toJSON);
-      document.getElementById('loginMsg').textContent = res.ok ? 'Zalogowano!' : (res.body.error || 'Błąd logowania');
+  document.getElementById('loginForm').addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const body = Object.fromEntries(new FormData(e.currentTarget).entries());
+    const res  = await request(API + '/api/auth/login', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      credentials:'include',
+      body: JSON.stringify(body)
     });
+    document.getElementById('loginMsg').textContent = res.ok ? 'Zalogowano!' : (res.body.error || 'Błąd logowania');
+  });
 
-    document.getElementById('logoutBtn').addEventListener('click', async ()=>{
-      await fetch(API + '/api/auth/logout',{ method:'POST', credentials:'include' });
-      document.getElementById('whoamiMsg').textContent = 'Wylogowano';
-    });
+  document.getElementById('logoutBtn').addEventListener('click', async ()=>{
+    await request(API + '/api/auth/logout',{ method:'POST', credentials:'include' });
+    document.getElementById('whoamiMsg').textContent = 'Wylogowano';
+  });
 
-    document.getElementById('whoamiBtn').addEventListener('click', async ()=>{
-      const res = await fetch(API + '/api/auth/me',{ credentials:'include' }).then(toJSON);
-      document.getElementById('whoamiMsg').textContent = res.ok && res.body?.user
-        ? ('Zalogowany jako: ' + res.body.user.login)
-        : 'Nie zalogowano';
-    });
+  document.getElementById('whoamiBtn').addEventListener('click', async ()=>{
+    const res = await request(API + '/api/auth/me',{ credentials:'include' });
+    document.getElementById('whoamiMsg').textContent = res.ok && res.body?.user
+      ? ('Zalogowany jako: ' + res.body.user.login)
+      : (res.body.error || 'Nie zalogowano');
+  });
 
-    // hamburger
-    (function(){
-      const btn = document.getElementById('menu-btn');
-      const links = document.getElementById('nav--links');
-      if (btn && links) btn.addEventListener('click', ()=> links.classList.toggle('open'));
-    })();
-  </script>
+  // hamburger
+  (function(){
+    const btn = document.getElementById('menu-btn');
+    const links = document.getElementById('nav--links');
+    if (btn && links) btn.addEventListener('click', ()=> links.classList.toggle('open'));
+  })();
+</script>
+
 </body>
 </html>

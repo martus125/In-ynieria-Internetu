@@ -1,117 +1,91 @@
 import express from "express";
 import mysql from "mysql";
-import bcrypt from "bcryptjs";
-import session from "express-session";
-import cookieParser from "cookie-parser";
 import cors from "cors";
+import cookieParser from "cookie-parser";
+import session from "express-session";
+import bcrypt from "bcryptjs";
 
 const app = express();
+
+// === MIDDLEWARE ===
+app.use(express.json());
+app.use(cookieParser());
+app.use(cors({
+  origin: ["http://127.0.0.1:5500", "http://localhost:5500"], // Live Server
+  credentials: true
+}));
+app.use(session({
+  secret: "super-secet-hot3l-ol1mp", // zmień na env w realnym deployu
+  resave: false,
+  saveUninitialized: false,
+  cookie: { httpOnly: true }
+}));
 
 // === DB ===
 const db = mysql.createConnection({
   host: "localhost",
   user: "root",
-  password: "123456789",
-  database: "uzytkownicy", // schema w MySQL Workbench (patrz część 4)
+  password: "123456789",   // <-- twoje hasło
+  database: "uzytkownicy"
 });
 
-// === Middlewares ===
-app.use(cors({
-  origin: [
-    "http://localhost:5500",      // Live Server (VS Code)
-    "http://127.0.0.1:5500",
-    "http://localhost:3000",      // jeśli front z tego samego hosta
-  ],
-  credentials: true
-}));
-app.use(express.json());
-app.use(cookieParser());
-app.use(session({
-  secret: "dev-secret-tylko-do-lokalu", // zmień w produkcji
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    httpOnly: true,
-    sameSite: "lax",
-    // secure: true, // odkomentuj, gdy używasz HTTPS
-    maxAge: 1000 * 60 * 60 * 24 * 7, // 7 dni
-  },
-}));
+// proste „żyję”
+app.get("/", (req,res)=> res.json({ok:true,msg:"Backend działa"}));
 
-// === Helper: sprawdzanie sesji ===
-function requireAuth(req, res, next) {
-  if (req.session?.user) return next();
-  return res.status(401).json({ error: "Nie zalogowano" });
-}
-
-// === API ===
-
-// Healthcheck (opcjonalnie)
-app.get("/", (req, res) => {
-  res.json({ ok: true, msg: "Backend działa" });
-});
-
-// Rejestracja
-app.post("/api/auth/register", (req, res) => {
+// === AUTH ===
+// rejestracja
+app.post("/api/auth/register", (req,res)=>{
   const { login, password } = req.body || {};
-  if (!login || !password) return res.status(400).json({ error: "Podaj login i hasło" });
-  if (password.length < 6) return res.status(400).json({ error: "Hasło min. 6 znaków" });
-
-  // Sprawdź czy login zajęty
-  db.query("SELECT id FROM uzytkownicy WHERE login = ?", [login], (err, rows) => {
-    if (err) return res.status(500).json({ error: "Błąd bazy (sprawdzenie loginu)" });
-    if (rows.length > 0) return res.status(409).json({ error: "Login zajęty" });
-
+  if(!login || !password || password.length < 6){
+    return res.status(400).json({error:"Podaj login i hasło (min. 6 znaków)."});
+  }
+  const qCheck = "SELECT id FROM uzytkownicy WHERE login = ?";
+  db.query(qCheck, [login], (e, rows)=>{
+    if(e) return res.status(500).json({error:"DB error (check)"});
+    if(rows.length) return res.status(409).json({error:"Taki login już istnieje."});
     const hash = bcrypt.hashSync(password, 10);
-    db.query(
-      "INSERT INTO uzytkownicy (login, password_hash) VALUES (?,?)",
-      [login, hash],
-      (err2, result) => {
-        if (err2) return res.status(500).json({ error: "Błąd bazy (insert)" });
-        res.status(201).json({ user: { id: result.insertId, login } });
-      }
-    );
+    const qIns = "INSERT INTO uzytkownicy (login, password_hash) VALUES(?,?)";
+    db.query(qIns, [login, hash], (e2)=>{
+      if(e2) return res.status(500).json({error:"DB error (insert)"});
+      return res.status(201).json({ok:true});
+    });
   });
 });
 
-// Logowanie
-app.post("/api/auth/login", (req, res) => {
+// logowanie
+app.post("/api/auth/login", (req,res)=>{
   const { login, password } = req.body || {};
-  if (!login || !password) return res.status(400).json({ error: "Podaj login i hasło" });
+  if(!login || !password) return res.status(400).json({error:"Brak danych"});
 
-  db.query("SELECT id, login, password_hash FROM uzytkownicy WHERE login = ?", [login], (err, rows) => {
-    if (err) return res.status(500).json({ error: "Błąd bazy (select)" });
-    if (rows.length === 0) return res.status(401).json({ error: "Nieprawidłowe dane" });
-
+  const q = "SELECT id, login, password_hash FROM uzytkownicy WHERE login = ? LIMIT 1";
+  db.query(q, [login], (e, rows)=>{
+    if(e) return res.status(500).json({error:"DB error"});
+    if(!rows.length) return res.status(401).json({error:"Zły login lub hasło"});
     const user = rows[0];
     const ok = bcrypt.compareSync(password, user.password_hash);
-    if (!ok) return res.status(401).json({ error: "Nieprawidłowe dane" });
-
+    if(!ok) return res.status(401).json({error:"Zły login lub hasło"});
+    // zapisz do sesji
     req.session.user = { id: user.id, login: user.login };
-    res.json({ user: req.session.user });
+    return res.json({ok:true, user:{ id:user.id, login:user.login }});
   });
 });
 
-// Wylogowanie
-app.post("/api/auth/logout", (req, res) => {
-  req.session.destroy(() => {
-    res.clearCookie("connect.sid");
-    res.status(204).end();
-  });
+// kim jestem
+app.get("/api/auth/me", (req,res)=>{
+  if(!req.session.user) return res.status(401).json({error:"Brak sesji"});
+  res.json({ok:true, user: req.session.user});
 });
 
-// Kto zalogowany
-app.get("/api/auth/me", (req, res) => {
-  if (req.session?.user) return res.json({ user: req.session.user });
-  res.status(204).end();
+// wyloguj
+app.post("/api/auth/logout", (req,res)=>{
+  req.session.destroy(()=> res.json({ok:true}));
 });
 
-// (Opcjonalnie) endpoint tylko dla zalogowanych:
-app.get("/api/booking/hello", requireAuth, (req, res) => {
-  res.json({ msg: `Cześć ${req.session.user.login}, tu strefa zalogowanych!` });
-});
+app.listen(3000, ()=> console.log("Backend działa na http://localhost:3000"));
 
-// Start
-app.listen(3000, () => {
-  console.log("Backend działa na http://localhost:3000");
-});
+fetch('http://localhost:3000/api/auth/register', {
+  method:'POST',
+  headers:{'Content-Type':'application/json'},
+  body: JSON.stringify({login:'test123', password:'sekret1'})
+}).then(r => r.json()).then(console.log).catch(console.error);
+
