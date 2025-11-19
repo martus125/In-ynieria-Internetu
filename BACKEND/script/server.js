@@ -20,9 +20,9 @@ app.get('/api/health', async (req, res) => {
 });
 
 // 🔹 przykładowy endpoint z tabeli "wiersze"
-app.get('/api/wiersze', async (req, res) => {
+app.get('/api/rooms', async (req, res) => {
   try {
-    const [rows] = await pool.query('SELECT * FROM wiersze');
+    const [rows] = await pool.query('SELECT * FROM rooms');
     res.json(rows);
   } catch (err) {
     console.error('Błąd /api/wiersze:', err);  
@@ -30,9 +30,9 @@ app.get('/api/wiersze', async (req, res) => {
   }
 });
 
-app.get('/api/autorzy', async (req, res) => {
+app.get('/api/uzytkownicy', async (req, res) => {
     try {
-      const [rows] = await pool.query('SELECT * FROM autorzy');
+      const [rows] = await pool.query('SELECT * FROM uzytkownicy');
       res.json(rows);
     } catch (err) {
       console.error('Błąd /api/autorzy:', err);
@@ -40,10 +40,10 @@ app.get('/api/autorzy', async (req, res) => {
     }
   });
 
-  app.get('/api/autorzy/:id', async (req, res) => {
+  app.get('/api/uzytkownicy/:id', async (req, res) => {
     try {
       const [rows] = await pool.query(
-        'SELECT * FROM autorzy WHERE idautorzy = ?',
+        'SELECT * FROM uzytkownicy WHERE id = ?',
         [req.params.id]
       );
   
