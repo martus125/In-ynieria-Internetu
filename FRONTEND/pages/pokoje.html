@@ -3,7 +3,6 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <!-- z pages/ cofamy się do styles/ -->
   <link rel="stylesheet" href="../styles/styles.css" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/remixicon@4.7.0/fonts/remixicon.css" />
   <title>Pokoje | Hotel Olimp</title>
@@ -33,16 +32,114 @@
   </nav>
 
   <section class="hero">
-    <div class="eyebrow">Podstrona testowa</div>
+    <div class="eyebrow">Rezerwacje</div>
     <h1>Pokoje</h1>
-    <p>Sprawdź nasze przykładowe typy pokoi. (Treść testowa)</p>
-    <a class="btn" href="pokoje.html">Zapytaj o dostępność</a>
+    <p>Wybierz pokój, termin i wyślij zapytanie rezerwacyjne.</p>
+  </section>
+
+  <!-- Lista pokoi z formularzami -->
+  <section class="grid-cards" id="rooms-section">
+    <article class="card" style="grid-column:1/-1;">
+      <h3>Dostępne pokoje</h3>
+      <p>Poniżej znajdziesz listę pokoi pobraną z bazy danych.</p>
+    </article>
+    <!-- tutaj JS doda karty pokoi -->
   </section>
 
   <script>
-    const btn = document.getElementById('menu-btn');
-    const links = document.getElementById('nav--links');
-    if (btn && links) btn.addEventListener('click', () => links.classList.toggle('open'));
+    const API = 'http://localhost:3001';
+
+    // Hamburger
+    (function(){
+      const btn = document.getElementById('menu-btn');
+      const links = document.getElementById('nav--links');
+      if (btn && links) btn.addEventListener('click', () => links.classList.toggle('open'));
+    })();
+
+    // Pobieranie listy pokoi z backendu
+    async function loadRooms() {
+      const section = document.getElementById('rooms-section');
+      try {
+        const res = await fetch(API + '/api/rooms');
+        if (!res.ok) throw new Error('Błąd przy pobieraniu pokoi');
+        const rooms = await res.json();
+
+        rooms.forEach(room => {
+          const card = document.createElement('article');
+          card.className = 'card';
+          card.innerHTML = `
+            <h3>Pokój ${room.number || room.id}</h3>
+            <p><strong>Typ:</strong> ${room.type || 'brak danych'}</p>
+            <p><strong>Liczba osób:</strong> ${room.capacity || '-'}</p>
+            <p><strong>Cena za noc:</strong> ${room.price_per_night ? room.price_per_night + ' zł' : '-'}</p>
+
+            <form class="reserve-form" data-room-id="${room.id}" style="margin-top:14px; display:grid; gap:8px;">
+              <label>Data przyjazdu
+                <input type="date" name="start_date" required>
+              </label>
+              <label>Data wyjazdu
+                <input type="date" name="end_date" required>
+              </label>
+              <label>Imię i nazwisko
+                <input type="text" name="guest_name" required>
+              </label>
+              <label>E-mail
+                <input type="email" name="guest_email" required>
+              </label>
+              <button class="btn" type="submit">Zarezerwuj ten pokój</button>
+              <p class="msg" style="min-height:1em; font-size:0.9rem;"></p>
+            </form>
+          `;
+          section.appendChild(card);
+        });
+
+      } catch (err) {
+        console.error(err);
+        const errorCard = document.createElement('article');
+        errorCard.className = 'card';
+        errorCard.innerHTML = `<p>Nie udało się pobrać listy pokoi. Sprawdź, czy backend działa.</p>`;
+        section.appendChild(errorCard);
+      }
+    }
+
+    // Obsługa wysyłki formularza rezerwacji (delegacja zdarzeń)
+    document.addEventListener('submit', async (e) => {
+      if (!e.target.matches('.reserve-form')) return;
+      e.preventDefault();
+
+      const form = e.target;
+      const roomId = form.dataset.roomId;
+      const msgEl = form.querySelector('.msg');
+
+      const formData = new FormData(form);
+      const body = Object.fromEntries(formData.entries());
+      body.room_id = Number(roomId);
+
+      msgEl.textContent = 'Wysyłam rezerwację...';
+
+      try {
+        const res = await fetch(API + '/api/reservations', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+
+        const data = await res.json();
+
+        if (res.ok) {
+          msgEl.textContent = 'Rezerwacja zapisana! (ID: ' + data.id + ')';
+          form.reset();
+        } else {
+          msgEl.textContent = data.error || data.message || 'Błąd rezerwacji';
+        }
+      } catch (err) {
+        console.error(err);
+        msgEl.textContent = 'Brak połączenia z backendem';
+      }
+    });
+
+    // Start
+    document.addEventListener('DOMContentLoaded', loadRooms);
   </script>
 </body>
 </html>

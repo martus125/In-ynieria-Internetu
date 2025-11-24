@@ -30,6 +30,34 @@ app.get('/api/rooms', async (req, res) => {
   }
 });
 
+// POST /api/reservations - zapis rezerwacji pokoju
+app.post('/api/reservations', async (req, res) => {
+  const { room_id, start_date, end_date, guest_name, guest_email } = req.body;
+
+  if (!room_id || !start_date || !end_date || !guest_name || !guest_email) {
+    return res.status(400).json({
+      message: 'Wymagane pola: room_id, start_date, end_date, guest_name, guest_email'
+    });
+  }
+
+  try {
+    const [result] = await pool.query(
+      `INSERT INTO reservations (room_id, start_date, end_date, guest_name, guest_email)
+       VALUES (?, ?, ?, ?, ?)`,
+      [room_id, start_date, end_date, guest_name, guest_email]
+    );
+
+    res.status(201).json({
+      message: 'Rezerwacja zapisana',
+      id: result.insertId
+    });
+  } catch (err) {
+    console.error('Błąd POST /api/reservations:', err);
+    res.status(500).json({ message: 'Błąd bazy danych', error: err.message });
+  }
+});
+
+
 app.get('/api/uzytkownicy', async (req, res) => {
     try {
       const [rows] = await pool.query('SELECT * FROM uzytkownicy');

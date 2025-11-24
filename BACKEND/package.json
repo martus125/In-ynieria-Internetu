@@ -5,11 +5,11 @@
   "license": "ISC",
   "author": "martus",
   "type": "commonjs",
-  "main": "backend/script/server.js",
+  "main": "script/server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "nodemon server.js",
-    "start": "node server.js"
+    "dev": "nodemon script/server.js",
+    "start": "node script/server.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
