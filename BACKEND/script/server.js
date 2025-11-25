@@ -1,13 +1,31 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const pool = require('./db'); 
-
+const cookieParser = require('cookie-parser');
+const session = require('express-session');
+const pool = require('./db');
 
 const app = express();
 
-app.use(cors());
+// CORS – pozwalamy na cookies z frontu
+app.use(cors({
+  origin: true,        // w dev: akceptuj dowolny origin (echouje dokładny)
+  credentials: true,   // zezwól na ciasteczka
+}));
+
 app.use(express.json());
+app.use(cookieParser());
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'dev-secret-olimp',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    httpOnly: true,
+    secure: false,              // w dev bez https
+    maxAge: 24 * 60 * 60 * 1000 // 1 dzień
+  }
+}));
+
 
 app.get('/api/health', async (req, res) => {
   try {
@@ -111,6 +129,102 @@ app.get('/api/uzytkownicy', async (req, res) => {
     }
   });
   
+// ===== AUTH =====
+
+// Rejestracja
+app.post('/api/auth/register', async (req, res) => {
+  const { login, password } = req.body;
+
+  if (!login || !password) {
+    return res.status(400).json({ error: 'Podaj login i hasło' });
+  }
+
+  try {
+    // czy login już istnieje?
+    const [existing] = await pool.query(
+      'SELECT id FROM uzytkownicy WHERE login = ?',
+      [login]
+    );
+    if (existing.length > 0) {
+      return res.status(400).json({ error: 'Taki login już istnieje' });
+    }
+
+    const [result] = await pool.query(
+  'INSERT INTO uzytkownicy (login, password_hash) VALUES (?, ?)',
+  [login, password]   
+);
+
+
+    // od razu logujemy usera w sesji
+    req.session.userId = result.insertId;
+    req.session.login = login;
+
+    res.status(201).json({
+      message: 'Utworzono konto',
+      user: { id: result.insertId, login }
+    });
+  } catch (err) {
+    console.error('Błąd /api/auth/register:', err);
+    res.status(500).json({ error: 'Błąd bazy danych' });
+  }
+});
+
+// Logowanie
+app.post('/api/auth/login', async (req, res) => {
+  const { login, password } = req.body;
+
+  if (!login || !password) {
+    return res.status(400).json({ error: 'Podaj login i hasło' });
+  }
+
+  try {
+   const [rows] = await pool.query(
+  'SELECT id, login, password_hash FROM uzytkownicy WHERE login = ?',
+  [login]
+);
+
+if (rows.length === 0 || rows[0].password_hash !== password) {
+  return res.status(401).json({ error: 'Zły login lub hasło' });
+}
+
+
+    req.session.userId = rows[0].id;
+    req.session.login = rows[0].login;
+
+    res.json({
+      message: 'Zalogowano',
+      user: { id: rows[0].id, login: rows[0].login }
+    });
+  } catch (err) {
+    console.error('Błąd /api/auth/login:', err);
+    res.status(500).json({ error: 'Błąd bazy danych' });
+  }
+});
+
+// Kim jestem
+app.get('/api/auth/me', (req, res) => {
+  if (!req.session.userId) {
+    return res.status(401).json({ error: 'Nie zalogowano' });
+  }
+  res.json({
+    user: {
+      id: req.session.userId,
+      login: req.session.login
+    }
+  });
+});
+
+// Wylogowanie
+app.post('/api/auth/logout', (req, res) => {
+  req.session.destroy(err => {
+    if (err) {
+      console.error('Błąd /api/auth/logout:', err);
+      return res.status(500).json({ error: 'Nie udało się wylogować' });
+    }
+    res.json({ message: 'Wylogowano' });
+  });
+});
+
 
 const port = process.env.PORT || 3001;
 
