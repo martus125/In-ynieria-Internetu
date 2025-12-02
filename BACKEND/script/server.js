@@ -48,17 +48,52 @@ app.get('/api/rooms', async (req, res) => {
   }
 });
 
-// POST /api/reservations - zapis rezerwacji pokoju
+// POST /api/reservations - zapis rezerwacji pokoju z kontrolą kolizji terminów
 app.post('/api/reservations', async (req, res) => {
+  // 1) sprawdzenie, czy użytkownik jest zalogowany
+  if (!req.session || !req.session.userId) {
+    return res.status(401).json({
+      message: 'Aby dokonać rezerwacji, najpierw zarejestruj się i zaloguj w zakładce "Logowanie".'
+    });
+  }
+
   const { room_id, start_date, end_date, guest_name, guest_email } = req.body;
 
+  // 2) podstawowa walidacja pól
   if (!room_id || !start_date || !end_date || !guest_name || !guest_email) {
     return res.status(400).json({
       message: 'Wymagane pola: room_id, start_date, end_date, guest_name, guest_email'
     });
   }
 
+  // 3) walidacja zakresu dat (data wyjazdu musi być późniejsza niż przyjazdu)
+  if (new Date(start_date) >= new Date(end_date)) {
+    return res.status(400).json({
+      message: 'Data wyjazdu musi być późniejsza niż data przyjazdu.'
+    });
+  }
+
   try {
+    // 4) sprawdzenie, czy w tym okresie pokój jest już zajęty
+    // Przyjmujemy konwencję hotelową: rezerwacja obejmuje noce od start_date do end_date,
+    // a wymeldowanie jest rano w end_date, więc:
+    // kolizja jest, jeśli istnieje rezerwacja, dla której:
+    //   existing.start_date < new_end  AND  existing.end_date > new_start
+    const [conflicts] = await pool.query(
+      `SELECT COUNT(*) AS cnt
+       FROM reservations
+       WHERE room_id = ?
+         AND NOT (end_date <= ? OR start_date >= ?)`,
+      [room_id, start_date, end_date]
+    );
+
+    if (conflicts[0].cnt > 0) {
+      return res.status(409).json({
+        error: 'Wybrany pokój jest już zajęty w tym terminie. Wybierz inny termin lub inny pokój.'
+      });
+    }
+
+    // 5) jeśli brak kolizji – zapisujemy rezerwację
     const [result] = await pool.query(
       `INSERT INTO reservations (room_id, start_date, end_date, guest_name, guest_email)
        VALUES (?, ?, ?, ?, ?)`,
@@ -74,6 +109,7 @@ app.post('/api/reservations', async (req, res) => {
     res.status(500).json({ message: 'Błąd bazy danych', error: err.message });
   }
 });
+
 
 
 app.get('/api/uzytkownicy', async (req, res) => {
@@ -225,7 +261,6 @@ app.post('/api/auth/logout', (req, res) => {
   });
 });
 
-
 const port = process.env.PORT || 3001;
 
 app.listen(port, async () => {
@@ -239,3 +274,4 @@ app.listen(port, async () => {
     console.error('Błąd połączenia z DB przy starcie server.js:', err);
   }
 });
+

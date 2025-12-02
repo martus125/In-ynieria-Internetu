@@ -63,7 +63,7 @@
     </article>
   </section>
 
-  <script>
+ <script>
   const API = 'http://localhost:3001';
 
 
@@ -78,28 +78,42 @@
     }
   }
 
+  // REJESTRACJA
   document.getElementById('regForm').addEventListener('submit', async (e)=>{
     e.preventDefault();
-    const body = Object.fromEntries(new FormData(e.currentTarget).entries());
+    const form = e.currentTarget;
+    const body = Object.fromEntries(new FormData(form).entries());
     const res  = await request(API + '/api/auth/register', {
       method:'POST',
       headers:{'Content-Type':'application/json'},
       credentials:'include',
       body: JSON.stringify(body)
     });
-    document.getElementById('regMsg').textContent = res.ok ? 'Konto utworzone!' : (res.body.error || 'Błąd rejestracji');
+
+    document.getElementById('regMsg').textContent =
+      res.ok ? 'Konto utworzone!' : (res.body.error || 'Błąd rejestracji');
+
+    // wyczyszczenie pól po kliknięciu
+    form.reset();
   });
 
+  // LOGOWANIE
   document.getElementById('loginForm').addEventListener('submit', async (e)=>{
     e.preventDefault();
-    const body = Object.fromEntries(new FormData(e.currentTarget).entries());
+    const form = e.currentTarget;
+    const body = Object.fromEntries(new FormData(form).entries());
     const res  = await request(API + '/api/auth/login', {
       method:'POST',
       headers:{'Content-Type':'application/json'},
       credentials:'include',
       body: JSON.stringify(body)
     });
-    document.getElementById('loginMsg').textContent = res.ok ? 'Zalogowano!' : (res.body.error || 'Błąd logowania');
+
+    document.getElementById('loginMsg').textContent =
+      res.ok ? 'Zalogowano!' : (res.body.error || 'Błąd logowania');
+
+    // wyczyszczenie pól po kliknięciu
+    form.reset();
   });
 
   document.getElementById('logoutBtn').addEventListener('click', async ()=>{
@@ -121,6 +135,7 @@
     if (btn && links) btn.addEventListener('click', ()=> links.classList.toggle('open'));
   })();
 </script>
+
 
 </body>
 </html>

@@ -38,9 +38,14 @@
   </section>
 
   <!-- Lista pokoi z formularzami -->
-  <section class="grid-cards" id="rooms-section">
+   <img src="/images/pokoj-standard.jpg" style="width:300px; border:2px solid red;">
+
+  <section class="grid-cards rooms-grid" id="rooms-section">
     <article class="card" style="grid-column:1/-1;">
       <h3>Dostępne pokoje</h3>
+      <p id="auth-info">
+        Aby dokonać rezerwacji, najpierw zarejestruj się i zaloguj w zakładce „Logowanie”.
+      </p>
       <p>Poniżej znajdziesz listę pokoi pobraną z bazy danych.</p>
     </article>
     <!-- tutaj JS doda karty pokoi -->
@@ -56,9 +61,38 @@
       if (btn && links) btn.addEventListener('click', () => links.classList.toggle('open'));
     })();
 
-    // Pobieranie listy pokoi z backendu
+    // Sprawdzenie czy użytkownik jest zalogowany (tekst nad kartami)
+    async function checkAuth() {
+      const info = document.getElementById('auth-info');
+      try {
+        const res = await fetch(API + '/api/auth/me', {
+          credentials: 'include'
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          info.textContent = 'Zalogowany jako: ' + data.user.login + '. Możesz dokonać rezerwacji.';
+        } else {
+          info.textContent = 'Aby dokonać rezerwacji, najpierw zarejestruj się i zaloguj w zakładce „Logowanie”.';
+        }
+      } catch (err) {
+        console.error(err);
+        info.textContent = 'Nie udało się sprawdzić statusu logowania (brak połączenia z backendem).';
+      }
+    }
+
+    // Pobieranie listy pokoi z backendu + zdjęcia
     async function loadRooms() {
       const section = document.getElementById('rooms-section');
+
+      // mapowanie typu pokoju na konkretne zdjęcie
+     const imageMap = {
+       standard: '/images/pokoj-standard.jpg',
+       deluxe: '/images/pokoj-deluxe.jpg',
+       family: '/images/pokoj-family.jpg',
+        suite: '/images/pokoj-suite.jpg'
+      };
+
       try {
         const res = await fetch(API + '/api/rooms');
         if (!res.ok) throw new Error('Błąd przy pobieraniu pokoi');
@@ -66,14 +100,28 @@
 
         rooms.forEach(room => {
           const card = document.createElement('article');
-          card.className = 'card';
-          card.innerHTML = `
-            <h3>Pokój ${room.number || room.id}</h3>
-            <p><strong>Typ:</strong> ${room.type || 'brak danych'}</p>
-            <p><strong>Liczba osób:</strong> ${room.capacity || '-'}</p>
-            <p><strong>Cena za noc:</strong> ${room.price_per_night ? room.price_per_night + ' zł' : '-'}</p>
+          card.className = 'card room-card';
 
-            <form class="reserve-form" data-room-id="${room.id}" style="margin-top:14px; display:grid; gap:8px;">
+          const title = room.type
+            ? room.type.charAt(0).toUpperCase() + room.type.slice(1)
+            : 'Pokój ' + (room.number || room.id);
+
+          const imageSrc = imageMap[room.type] || '../images/pokoj-standard.jpg';
+
+          card.innerHTML = `
+            <div class="room-card__image-wrap">
+              <img src="${imageSrc}"
+                   alt="${title}"
+                   class="room-card__image">
+            </div>
+
+            <h3 class="room-card__title">${title}</h3>
+
+            <p class="room-card__desc">
+              Dla ${room.capacity || '?'} osób · od ${room.price_per_night || '?'} zł / noc
+            </p>
+
+            <form class="reserve-form room-card__form" data-room-id="${room.id}">
               <label>Data przyjazdu
                 <input type="date" name="start_date" required>
               </label>
@@ -86,7 +134,7 @@
               <label>E-mail
                 <input type="email" name="guest_email" required>
               </label>
-              <button class="btn" type="submit">Zarezerwuj ten pokój</button>
+              <button class="btn room-card__btn" type="submit">Zarezerwuj</button>
               <p class="msg" style="min-height:1em; font-size:0.9rem;"></p>
             </form>
           `;
@@ -102,7 +150,7 @@
       }
     }
 
-    // Obsługa wysyłki formularza rezerwacji (delegacja zdarzeń)
+    // Obsługa wysyłki formularza rezerwacji
     document.addEventListener('submit', async (e) => {
       if (!e.target.matches('.reserve-form')) return;
       e.preventDefault();
@@ -121,6 +169,7 @@
         const res = await fetch(API + '/api/reservations', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
           body: JSON.stringify(body)
         });
 
@@ -139,7 +188,10 @@
     });
 
     // Start
-    document.addEventListener('DOMContentLoaded', loadRooms);
+    document.addEventListener('DOMContentLoaded', () => {
+      checkAuth();
+      loadRooms();
+    });
   </script>
 </body>
 </html>
