@@ -382,4 +382,194 @@ nav.nav--hidden { opacity: 0; transform: translateY(-14px); pointer-events: none
     grid-template-columns: 1fr;
   }
 }
+/* ====== AUTH (LOGOWANIE / REJESTRACJA) ====== */
+
+.auth-page{
+  min-height: calc(100vh - 90px);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:32px 16px 56px;
+}
+.auth-card{
+  width: min(960px, 100%);
+  padding: 26px 28px 24px;
+  border-radius: 24px;
+
+  /* ciemny niebieski, ale półprzezroczysty */
+  background:
+    linear-gradient(135deg,
+      rgba(15, 23, 42, 0.82),   /* bardzo ciemny granat */
+      rgba(30, 64, 175, 0.72)   /* ciemny niebieski */
+    );
+
+  border: 1px solid rgba(255,255,255,.25);
+  box-shadow: 0 26px 70px rgba(15,23,42,.7);
+  backdrop-filter: blur(22px) saturate(140%);
+  -webkit-backdrop-filter: blur(22px) saturate(140%);
+  color: #e5e7eb;
+}
+
+
+.auth-card__header{
+  text-align:center;
+  margin-bottom: 20px;
+}
+
+.auth-card__icon{
+  font-size: 32px;
+  display:inline-block;
+  margin-bottom: 10px;
+}
+
+.auth-card__eyebrow{
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  font-size: 11px;
+  opacity: .8;
+  margin: 0 0 6px;
+}
+
+.auth-card__header h1{
+  margin: 0 0 6px;
+  font-size: clamp(26px, 4vw, 32px);
+}
+
+.auth-card__subtitle{
+  margin: 0;
+  font-size: 14px;
+  opacity: .9;
+}
+
+.auth-card__body{
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 28px;
+  margin-top: 18px;
+}
+
+.auth-column h3{
+  margin: 0 0 10px;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  font-size: 16px;
+}
+
+.auth-form{
+  display:grid;
+  gap: 10px;
+}
+
+.auth-form label{
+  display:flex;
+  flex-direction:column;
+  gap: 4px;
+  font-size: 13px;
+}
+
+.auth-form input{
+  border-radius: 10px;
+  border: 1px solid rgba(148,163,184,.8);
+  background: rgba(15,23,42,.75);
+  padding: 10px 12px;
+  font-size: 14px;
+  color: #e5e7eb;
+  outline: none;
+  transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
+}
+
+.auth-form input::placeholder{
+  color: rgba(148,163,184,.9);
+}
+
+.auth-form input:focus{
+  border-color: #fbbf24;
+  background: rgba(15,23,42,.95);
+  box-shadow: 0 0 0 1px rgba(251,191,36,.45);
+}
+
+.auth-form .btn{
+  width: 100%;
+  text-align:center;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  margin-top: 4px;
+}
+
+#regMsg,
+#loginMsg,
+#whoamiMsg{
+  font-size: 12px;
+  margin-top: 4px;
+  min-height: 16px;
+}
+
+/* przyciski pomocnicze pod logowaniem */
+.auth-extra-actions{
+  margin-top: 16px;
+  display:flex;
+  flex-wrap:wrap;
+  gap: 8px;
+  align-items:center;
+}
+
+.btn.btn--ghost{
+  background: transparent;
+  color: #e5e7eb;
+  border: 1px solid rgba(148,163,184,.8);
+  box-shadow: none;
+  padding-inline: 14px;
+}
+
+.btn.btn--ghost:hover{
+  background: rgba(15,23,42,.7);
+}
+
+/* responsywność auth */
+@media (max-width: 800px){
+  .auth-card__body{
+    grid-template-columns: 1fr;
+    gap: 22px;
+  }
+}
+
+@media (max-width: 520px){
+  .auth-card{
+    padding: 22px 18px 20px;
+    border-radius: 20px;
+  }
+}
+/* ====== WYSKAKUJĄCE POWIADOMIENIE (TOAST) ====== */
+.toast{
+  position: fixed;
+  /* niżej, żeby nie wchodziło pod nawigację */
+  top: 110px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 10px 18px;
+  border-radius: 999px;
+  background: rgba(220,38,38,.96); /* czerwone tło błędu */
+  color: #fef2f2;
+  font-size: 14px;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  box-shadow: 0 18px 40px rgba(15,23,42,.85);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .25s ease, transform .25s ease;
+  z-index: 999;
+}
+
+.toast--visible{
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(-50%) translateY(0);
+}
+
+@media (max-width: 600px){
+  .toast{
+    width: calc(100% - 32px);
+    text-align: center;
+  }
+}
 

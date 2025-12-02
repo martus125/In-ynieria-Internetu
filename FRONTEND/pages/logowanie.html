@@ -30,43 +30,72 @@
     </div>
   </nav>
 
-  <section class="hero">
-    <div class="eyebrow">Panel użytkownika</div>
-    <h1>Logowanie i rejestracja</h1>
-    <p>Utwórz konto, a potem zaloguj się, aby zarezerwować pokój.</p>
-  </section>
-
-  <section class="grid-cards" style="max-width:960px">
-    <article class="card">
-      <h3>Rejestracja</h3>
-      <form id="regForm" class="form" style="display:grid; gap:10px; margin-top:10px">
-        <label>Login <input name="login" required></label>
-        <label>Hasło <input name="password" type="password" minlength="6" required></label>
-        <button class="btn" type="submit">Zarejestruj</button>
-        <p id="regMsg"></p>
-      </form>
-    </article>
-
-    <article class="card">
-      <h3>Logowanie</h3>
-      <form id="loginForm" class="form" style="display:grid; gap:10px; margin-top:10px">
-        <label>Login <input name="login" required></label>
-        <label>Hasło <input name="password" type="password" required></label>
-        <button class="btn" type="submit">Zaloguj</button>
-        <p id="loginMsg"></p>
-      </form>
-      <div style="margin-top:14px; display:flex; gap:8px; flex-wrap:wrap">
-        <button class="btn" id="whoamiBtn" type="button">Kim jestem?</button>
-        <button class="btn" id="logoutBtn" type="button">Wyloguj</button>
-        <p id="whoamiMsg"></p>
+  <!-- SZKLANY PANEL NA ŚRODKU -->
+  <main class="auth-page">
+    <section class="auth-card">
+      <div class="auth-card__header">
+        <i class="ri-user-3-line auth-card__icon"></i>
+        <p class="auth-card__eyebrow">Panel użytkownika</p>
+        <h1>Logowanie i rejestracja</h1>
+        <p class="auth-card__subtitle">
+          Utwórz konto, a potem zaloguj się, aby zarezerwować pokój.
+        </p>
       </div>
-    </article>
-  </section>
 
- <script>
+      <div class="auth-card__body">
+        <!-- KOLUMNA REJESTRACJI -->
+        <div class="auth-column">
+          <h3>Rejestracja</h3>
+          <form id="regForm" class="auth-form">
+            <label>
+              Login
+              <input name="login" required />
+            </label>
+            <label>
+              Hasło
+              <input name="password" type="password" minlength="6" required />
+            </label>
+            <button class="btn" type="submit">Zarejestruj</button>
+            <p id="regMsg"></p>
+          </form>
+        </div>
+
+        <!-- KOLUMNA LOGOWANIA -->
+        <div class="auth-column">
+          <h3>Logowanie</h3>
+          <form id="loginForm" class="auth-form">
+            <label>
+              Login
+              <input name="login" required />
+            </label>
+            <label>
+              Hasło
+              <input name="password" type="password" required />
+            </label>
+            <button class="btn" type="submit">Zaloguj</button>
+            <p id="loginMsg"></p>
+          </form>
+
+          <div class="auth-extra-actions">
+            <button class="btn btn--ghost" id="whoamiBtn" type="button">
+              Kim jestem?
+            </button>
+            <button class="btn btn--ghost" id="logoutBtn" type="button">
+              Wyloguj
+            </button>
+            <p id="whoamiMsg"></p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast" role="alert" aria-live="assertive"></div>
+
+    <script>
   const API = 'http://localhost:3001';
 
-
+  // wspólna funkcja do wywoływania backendu
   async function request(url, opts){
     try{
       const r = await fetch(url, opts);
@@ -78,11 +107,34 @@
     }
   }
 
+  // małe wyskakujące powiadomienie
+  function showToast(message, timeout = 4500){
+    const toast = document.getElementById('toast');
+    if (!toast) return;
+
+    toast.textContent = message;
+    toast.classList.add('toast--visible');
+
+    if (toast._hideTimeout){
+      clearTimeout(toast._hideTimeout);
+    }
+    toast._hideTimeout = setTimeout(()=>{
+      toast.classList.remove('toast--visible');
+    }, timeout);
+  }
+
+  // kliknięcie w powiadomienie je chowa
+  const toastEl = document.getElementById('toast');
+  if (toastEl){
+    toastEl.addEventListener('click', () => {
+      toastEl.classList.remove('toast--visible');
+    });
+  }
+
   // REJESTRACJA
   document.getElementById('regForm').addEventListener('submit', async (e)=>{
     e.preventDefault();
-    const form = e.currentTarget;
-    const body = Object.fromEntries(new FormData(form).entries());
+    const body = Object.fromEntries(new FormData(e.currentTarget).entries());
     const res  = await request(API + '/api/auth/register', {
       method:'POST',
       headers:{'Content-Type':'application/json'},
@@ -90,42 +142,58 @@
       body: JSON.stringify(body)
     });
 
-    document.getElementById('regMsg').textContent =
-      res.ok ? 'Konto utworzone!' : (res.body.error || 'Błąd rejestracji');
-
-    // wyczyszczenie pól po kliknięciu
-    form.reset();
+    const msg = res.ok ? 'Konto utworzone!' : (res.body.error || 'Błąd rejestracji');
+    document.getElementById('regMsg').textContent = msg;
+    if (!res.ok) showToast(msg);
   });
 
   // LOGOWANIE
-  document.getElementById('loginForm').addEventListener('submit', async (e)=>{
-    e.preventDefault();
-    const form = e.currentTarget;
-    const body = Object.fromEntries(new FormData(form).entries());
-    const res  = await request(API + '/api/auth/login', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      credentials:'include',
-      body: JSON.stringify(body)
-    });
-
-    document.getElementById('loginMsg').textContent =
-      res.ok ? 'Zalogowano!' : (res.body.error || 'Błąd logowania');
-
-    // wyczyszczenie pól po kliknięciu
-    form.reset();
+    // LOGOWANIE
+  // LOGOWANIE
+document.getElementById('loginForm').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const body = Object.fromEntries(new FormData(e.currentTarget).entries());
+  const res  = await request(API + '/api/auth/login', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    credentials:'include',
+    body: JSON.stringify(body)
   });
 
+  let msg;
+
+  if (res.ok){
+    msg = 'Zalogowano!';
+  } else if (res.status === 401 || res.status === 404){
+    msg = 'Najpierw trzeba się zarejestrować, a dopiero potem zalogować.';
+  } else if (res.status === 0){
+    msg = res.body.error || 'Brak połączenia z backendem';
+  } else {
+    msg = res.body.error || 'Błąd logowania';
+  }
+
+  document.getElementById('loginMsg').textContent = msg;
+  if (!res.ok) showToast(msg);
+});
+
+
+
+  // WYLOGOWANIE
   document.getElementById('logoutBtn').addEventListener('click', async ()=>{
     await request(API + '/api/auth/logout',{ method:'POST', credentials:'include' });
-    document.getElementById('whoamiMsg').textContent = 'Wylogowano';
+    const msg = 'Wylogowano';
+    document.getElementById('whoamiMsg').textContent = msg;
+    showToast(msg, 2500);
   });
 
+  // KIM JESTEM
   document.getElementById('whoamiBtn').addEventListener('click', async ()=>{
     const res = await request(API + '/api/auth/me',{ credentials:'include' });
-    document.getElementById('whoamiMsg').textContent = res.ok && res.body?.user
+    const msg = res.ok && res.body?.user
       ? ('Zalogowany jako: ' + res.body.user.login)
       : (res.body.error || 'Nie zalogowano');
+    document.getElementById('whoamiMsg').textContent = msg;
+    showToast(msg, 3000);
   });
 
   // hamburger
@@ -134,8 +202,7 @@
     const links = document.getElementById('nav--links');
     if (btn && links) btn.addEventListener('click', ()=> links.classList.toggle('open'));
   })();
-</script>
-
+  </script>
 
 </body>
 </html>
